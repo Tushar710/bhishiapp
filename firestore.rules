@@ -1,0 +1,135 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Hardened Security Primitives
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Zero-trust Admin check: verified via admins lookup collection OR bootstrapped developer email
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        request.auth.token.email == 'pawartushar710@gmail.com'
+      );
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(userId) &&
+        isValidId(userId) &&
+        incoming().uid == request.auth.uid &&
+        (incoming().role == 'member' || request.auth.token.email == 'pawartushar710@gmail.com');
+      allow update: if (
+        (isOwner(userId) &&
+         incoming().uid == existing().uid &&
+         incoming().role == existing().role) ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Admins Collection
+    match /admins/{adminId} {
+      allow get: if isSignedIn();
+      allow list: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // Bhishi Schemes
+    match /bhishiSchemes/{schemeId} {
+      allow get, list: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Memberships
+    match /memberships/{membershipId} {
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() &&
+        incoming().userId == request.auth.uid &&
+        incoming().status == 'applied';
+      allow update, delete: if isAdmin();
+    }
+
+    // Payment Schedules
+    match /paymentSchedules/{scheduleId} {
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // Payments & Receipts
+    match /payments/{paymentId} {
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && (incoming().userId == request.auth.uid || isAdmin());
+      allow update, delete: if isAdmin();
+    }
+
+    // Payouts & Rotation
+    match /payouts/{payoutId} {
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // Referrals
+    match /referrals/{referralId} {
+      allow get: if isSignedIn() && (resource.data.referrerId == request.auth.uid || resource.data.refereeId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.referrerId == request.auth.uid || resource.data.refereeId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && incoming().refereeId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    // Notifications
+    match /notifications/{notificationId} {
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.userId == 'all' || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.userId == 'all' || isAdmin());
+      allow create: if isAdmin();
+      allow update: if (
+        isSignedIn() &&
+        resource.data.userId == request.auth.uid &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['read'])
+      ) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Immutable Audit Logs
+    match /auditLogs/{logId} {
+      allow get, list: if isAdmin();
+      allow create: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    // App Settings
+    match /appSettings/{settingId} {
+      allow get, list: if isSignedIn();
+      allow write: if isAdmin();
+    }
+  }
+}

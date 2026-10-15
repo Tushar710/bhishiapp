@@ -1,0 +1,249 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Registered user profile and role metadata",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "format": "email", "description": "User email address" },
+        "fullName": { "type": "string", "minLength": 2, "maxLength": 100, "description": "Full legal or contact name" },
+        "phone": { "type": "string", "maxLength": 20, "description": "Mobile contact number" },
+        "role": { "type": "string", "enum": ["superadmin", "admin", "member"], "description": "System access role" },
+        "referralCode": { "type": "string", "maxLength": 20, "description": "Unique member referral code" },
+        "referredBy": { "type": "string", "description": "Referral code of person who referred this user" },
+        "status": { "type": "string", "enum": ["active", "suspended", "pending"], "description": "Account status" },
+        "createdAt": { "type": "string", "description": "Account creation timestamp" },
+        "updatedAt": { "type": "string", "description": "Profile update timestamp" }
+      },
+      "required": ["uid", "email", "fullName", "role", "status", "createdAt"]
+    },
+    "Admin": {
+      "title": "Admin",
+      "description": "Authorized administrator lookup document for zero-trust security checks",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Admin UID" },
+        "email": { "type": "string", "format": "email", "description": "Admin email" },
+        "role": { "type": "string", "enum": ["superadmin", "admin"], "description": "Privileged role" },
+        "grantedAt": { "type": "string", "description": "Timestamp when admin access was provisioned" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "BhishiScheme": {
+      "title": "BhishiScheme",
+      "description": "Monthly Bhishi / Chit Fund scheme definition and parameters",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique scheme ID" },
+        "schemeCode": { "type": "string", "maxLength": 20, "description": "Short code e.g. BHI-2026-01" },
+        "name": { "type": "string", "minLength": 3, "maxLength": 120, "description": "Scheme title" },
+        "description": { "type": "string", "maxLength": 500, "description": "Scheme summary and details" },
+        "monthlyContribution": { "type": "number", "description": "Monthly contribution amount per member in INR" },
+        "totalMembers": { "type": "number", "description": "Capacity of members in this group" },
+        "durationMonths": { "type": "number", "description": "Total duration in months" },
+        "startDate": { "type": "string", "description": "First collection month YYYY-MM-DD" },
+        "endDate": { "type": "string", "description": "Final month YYYY-MM-DD" },
+        "collectionDueDay": { "type": "number", "description": "Day of the month dues are expected (e.g. 5th or 10th)" },
+        "payoutMethod": { "type": "string", "enum": ["rotation", "draw", "bidding"], "description": "Payout allocation rule" },
+        "status": { "type": "string", "enum": ["draft", "open", "active", "completed", "cancelled"], "description": "Scheme lifecycle status" },
+        "terms": { "type": "string", "description": "Terms and regulatory disclosures" },
+        "createdBy": { "type": "string", "description": "UID of admin creator" },
+        "createdAt": { "type": "string", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "description": "Last modification timestamp" }
+      },
+      "required": ["schemeCode", "name", "monthlyContribution", "totalMembers", "durationMonths", "status", "payoutMethod"]
+    },
+    "Membership": {
+      "title": "Membership",
+      "description": "User enrollment record in a specific Bhishi scheme",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Membership document ID" },
+        "schemeId": { "type": "string", "description": "Target Bhishi scheme ID" },
+        "userId": { "type": "string", "description": "Member UID" },
+        "userFullName": { "type": "string", "description": "Member cached name for receipt records" },
+        "userPhone": { "type": "string", "description": "Member contact number" },
+        "membershipNumber": { "type": "string", "description": "Assigned unique sequence number e.g. MEM-001" },
+        "rotationIndex": { "type": "number", "description": "Assigned month position for receiving the payout turn (1..N)" },
+        "status": { "type": "string", "enum": ["applied", "approved", "active", "completed", "rejected"], "description": "Membership status" },
+        "appliedAt": { "type": "string", "description": "Application timestamp" },
+        "approvedAt": { "type": "string", "description": "Approval timestamp" },
+        "approvedBy": { "type": "string", "description": "Admin UID who approved" }
+      },
+      "required": ["schemeId", "userId", "status", "appliedAt"]
+    },
+    "PaymentSchedule": {
+      "title": "PaymentSchedule",
+      "description": "Monthly installment schedule record per member",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Schedule item ID" },
+        "schemeId": { "type": "string", "description": "Associated scheme ID" },
+        "membershipId": { "type": "string", "description": "Associated membership ID" },
+        "userId": { "type": "string", "description": "Member UID" },
+        "monthIndex": { "type": "number", "description": "Month installment index (1..durationMonths)" },
+        "scheduledAmount": { "type": "number", "description": "Due amount in INR" },
+        "dueDate": { "type": "string", "description": "Due date ISO string" },
+        "paidAmount": { "type": "number", "description": "Total amount paid toward this schedule" },
+        "outstandingBalance": { "type": "number", "description": "Remaining unpaid balance" },
+        "status": { "type": "string", "enum": ["upcoming", "due", "paid", "partially_paid", "overdue", "waived"], "description": "Payment installment status" },
+        "updatedAt": { "type": "string", "description": "Last update timestamp" }
+      },
+      "required": ["schemeId", "membershipId", "userId", "monthIndex", "scheduledAmount", "dueDate", "status"]
+    },
+    "Payment": {
+      "title": "Payment",
+      "description": "Verified transaction record for a monthly installment",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Payment record ID" },
+        "receiptNumber": { "type": "string", "description": "Official receipt number e.g. RCP-2026-0001" },
+        "scheduleId": { "type": "string", "description": "PaymentSchedule ID" },
+        "schemeId": { "type": "string", "description": "Scheme ID" },
+        "userId": { "type": "string", "description": "Member UID" },
+        "amount": { "type": "number", "description": "Verified transaction amount in INR" },
+        "paymentMethod": { "type": "string", "enum": ["upi", "bank_transfer", "cash", "cheque", "other"], "description": "Mode of payment" },
+        "transactionRef": { "type": "string", "maxLength": 100, "description": "Bank/UPI reference number or transaction ID" },
+        "notes": { "type": "string", "maxLength": 300, "description": "Verification notes or remarks" },
+        "status": { "type": "string", "enum": ["pending", "verified", "rejected"], "description": "Payment verification state" },
+        "verifiedByAdminId": { "type": "string", "description": "Admin UID who verified this payment" },
+        "verifiedAt": { "type": "string", "description": "Verification timestamp" },
+        "createdAt": { "type": "string", "description": "Submission timestamp" }
+      },
+      "required": ["receiptNumber", "scheduleId", "schemeId", "userId", "amount", "paymentMethod", "status", "createdAt"]
+    },
+    "Payout": {
+      "title": "Payout",
+      "description": "Scheduled or completed rotation payout to the turn recipient",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Payout ID" },
+        "schemeId": { "type": "string", "description": "Associated Scheme ID" },
+        "membershipId": { "type": "string", "description": "Recipient membership ID" },
+        "userId": { "type": "string", "description": "Recipient member UID" },
+        "monthIndex": { "type": "number", "description": "Scheduled rotation month index" },
+        "grossAmount": { "type": "number", "description": "Total monthly pot before deductions" },
+        "deductions": { "type": "number", "description": "Management fee or documented administrative deduction" },
+        "netAmount": { "type": "number", "description": "Disbursed amount to recipient" },
+        "status": { "type": "string", "enum": ["scheduled", "pending_approval", "approved", "paid", "cancelled"], "description": "Payout lifecycle state" },
+        "scheduledDate": { "type": "string", "description": "Target payout date" },
+        "paidAt": { "type": "string", "description": "Actual disbursement date" },
+        "paymentMethod": { "type": "string", "description": "Disbursement mode" },
+        "referenceNumber": { "type": "string", "description": "Disbursement reference or UTR" },
+        "adminNotes": { "type": "string", "description": "Approval notes" }
+      },
+      "required": ["schemeId", "membershipId", "userId", "monthIndex", "grossAmount", "netAmount", "status"]
+    },
+    "Referral": {
+      "title": "Referral",
+      "description": "Referral relationship and incentive tracker",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Referral ID" },
+        "referrerId": { "type": "string", "description": "UID of the member who shared their code" },
+        "refereeId": { "type": "string", "description": "UID of the newly registered member" },
+        "referralCode": { "type": "string", "description": "Code applied during registration" },
+        "status": { "type": "string", "enum": ["registered", "pending_approval", "qualified", "rewarded", "rejected"], "description": "Referral progression state" },
+        "rewardAmount": { "type": "number", "description": "Credit or reward amount assigned" },
+        "qualifiedAt": { "type": "string", "description": "When qualifying condition was met" },
+        "createdAt": { "type": "string", "description": "Registration timestamp" }
+      },
+      "required": ["referrerId", "refereeId", "referralCode", "status", "createdAt"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "In-app alerts and transaction updates",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Notification ID" },
+        "userId": { "type": "string", "description": "Recipient UID or 'all'" },
+        "title": { "type": "string", "maxLength": 100, "description": "Notification heading" },
+        "message": { "type": "string", "maxLength": 300, "description": "Notification body" },
+        "link": { "type": "string", "description": "Internal route link" },
+        "type": { "type": "string", "enum": ["dues", "payment", "membership", "payout", "system"], "description": "Category" },
+        "read": { "type": "boolean", "description": "Read flag" },
+        "createdAt": { "type": "string", "description": "Timestamp" }
+      },
+      "required": ["userId", "title", "message", "read", "createdAt"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Immutable audit record for privileged administrative actions",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Log ID" },
+        "adminId": { "type": "string", "description": "Admin UID who executed the action" },
+        "adminEmail": { "type": "string", "description": "Admin email" },
+        "action": { "type": "string", "description": "Action name e.g. VERIFY_PAYMENT, APPROVE_MEMBER" },
+        "targetEntity": { "type": "string", "description": "Collection or domain affected" },
+        "entityId": { "type": "string", "description": "ID of target document" },
+        "details": { "type": "string", "description": "Context or serialized changes" },
+        "timestamp": { "type": "string", "description": "Server time of action" }
+      },
+      "required": ["adminId", "action", "targetEntity", "timestamp"]
+    },
+    "AppSettings": {
+      "title": "AppSettings",
+      "description": "Global application configuration and organization details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Config document key" },
+        "organizationName": { "type": "string", "description": "Brand or entity name" },
+        "currency": { "type": "string", "description": "Currency code e.g. INR" },
+        "currencySymbol": { "type": "string", "description": "Symbol e.g. ₹" },
+        "disclaimerNotice": { "type": "string", "description": "Mandatory ROSCA / Chit fund compliance notice" },
+        "supportPhone": { "type": "string", "description": "Support WhatsApp/Phone number" },
+        "supportEmail": { "type": "string", "description": "Support email address" },
+        "updatedAt": { "type": "string", "description": "Last updated" }
+      },
+      "required": ["organizationName", "currency", "currencySymbol"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles with strict owner/admin read/write isolation"
+    },
+    "/admins/{adminId}": {
+      "schema": "Admin",
+      "description": "Whitelist of verified admin UIDs for zero-trust security checks"
+    },
+    "/bhishiSchemes/{schemeId}": {
+      "schema": "BhishiScheme",
+      "description": "Bhishi schemes readable by all signed-in users, writable strictly by admins"
+    },
+    "/memberships/{membershipId}": {
+      "schema": "Membership",
+      "description": "Member scheme enrollments with status and rotation assignments"
+    },
+    "/paymentSchedules/{scheduleId}": {
+      "schema": "PaymentSchedule",
+      "description": "Monthly contribution installments per member and month"
+    },
+    "/payments/{paymentId}": {
+      "schema": "Payment",
+      "description": "Verified transaction records and receipts"
+    },
+    "/payouts/{payoutId}": {
+      "schema": "Payout",
+      "description": "Rotation payout schedules and disbursements"
+    },
+    "/referrals/{referralId}": {
+      "schema": "Referral",
+      "description": "Referral tracking records"
+    },
+    "/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "User in-app notifications and payment alerts"
+    },
+    "/auditLogs/{logId}": {
+      "schema": "AuditLog",
+      "description": "Privileged admin activity audit logs"
+    },
+    "/appSettings/{settingId}": {
+      "schema": "AppSettings",
+      "description": "Global settings and compliance notices"
+    }
+  }
+}

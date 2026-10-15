@@ -1,0 +1,6 @@
+{
+  "name": "BhishiPro - Monthly Bhishi Management System",
+  "description": "Production-grade Monthly Bhishi (Chit Fund / ROSCA) management system with role-based access, verified payment records, rotation queue payouts, and native Android PWA experience.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

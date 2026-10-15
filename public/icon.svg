@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <rect width="512" height="512" rx="128" fill="#0F172A"/>
+  <circle cx="256" cy="256" r="180" stroke="#1E293B" stroke-width="16"/>
+  <circle cx="256" cy="256" r="140" stroke="#059669" stroke-width="8" stroke-dasharray="24 16"/>
+  <path d="M256 120 V160 M256 352 V392 M120 256 H160 M352 256 H392" stroke="#10B981" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="256" cy="256" r="100" fill="#1E293B" stroke="#059669" stroke-width="10"/>
+  <!-- Rupee Symbol -->
+  <path d="M216 190 H296 M216 220 H284 M216 190 V252 C244 252 268 252 268 226 C268 198 244 198 216 198 M244 252 L296 322" stroke="#10B981" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
